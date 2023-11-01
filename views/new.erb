@@ -13,22 +13,22 @@
 <form action="/contacts/new" method="post">
   <dl >
     <dt class="form"><label name="first_name">First Name</label></dt><!--
-    --><dd class="form"><input type="text" placeholder="Firstname" name="first_name"></dd>
+    --><dd class="form"><input type="text" placeholder="Firstname" name="first_name" value="<%=params[:first_name]%>"></dd>
   </dl>
 
   <dl>
     <dt class="form"><label name="last_name">Last Name</label></dt><!--
-    --><dd class="form"><input type="text" placeholder="Lastname" name="last_name"></dd>
+    --><dd class="form"><input type="text" placeholder="Lastname" name="last_name" value="<%=params[:last_name]%>"></dd>
   </dl>
 
   <dl>
     <dt class="form"><label name="email">Email</label></dt><!--
-    --><dd class="form"><input type="email" placeholder="email@example.com" name="email"></dd>
+    --><dd class="form"><input type="email" placeholder="email@example.com" name="email" value="<%=params[:email]%>" ></dd>
   </dl>
 
   <dl>
     <dt class="form"><label name="phone">Phone Number</label></dt><!--
-    --><dd class="form"><input type="tel" placeholder="123-456-7890"name="phone"></dd>
+    --><dd class="form"><input type="tel" placeholder="123-456-7890" name="phone" value="<%=params[:phone]%>" ></dd>
   </dl>
 
   <dl id="form-radios">

@@ -41,15 +41,15 @@ helpers do
 end
 
 def validate_name(name)
- (1..50).cover?(name.size) && name.match?(/[a-z]+/i)
+ (1..50).cover?(name.size) && name.scan(/[a-zA-Z]+/i) == [name]
 end
 
 def validate_email(email)
-  (1..70).cover?(email.size)&& email.match?(/[a-z0-9]+[@][a-z]+[.][a-z]+/i)
+  (1..70).cover?(email.size)&& email.scan(/[a-z0-9]+[@][a-z]+[.][a-z]+/i) == [email]
 end
 
 def validate_phone(phone)
-  phone.gsub(/[ -]/, "").match?(/[0-9]{10,11}/i)
+  phone.gsub(/[ -]/, "").scan(/[0-9]{10,11}/i) == [phone.gsub(/[ -]/, "")]
 end
 
 def valid?
@@ -68,6 +68,7 @@ def error_messages
   !validate_name(params[:last_name]) ? errors << "Last Name Input Wrong, 1-50 Alphabetic characters Please" : ""
   !validate_email(params[:email]) ? errors << "Email Input Wrong, example@info.com format" : ""
   !validate_phone(params[:phone]) ? errors << "Phone Input Wrong 10/11 digit phone number" : ""
+  errors
 end
 
 get "/" do
@@ -109,8 +110,8 @@ get "/contacts/new" do
 post "/contacts/new" do
 
   if valid?
-    first_name = params[:first_name].capitalize
-    last_name = params[:last_name].capitalize
+    first_name = params[:first_name]
+    last_name = params[:last_name]
     email = params[:email]
     phone = params[:phone].gsub(/[ -]/, " ")
     category = params[:category]
@@ -153,8 +154,8 @@ post "/contacts/:id/edit" do
   @id = params[:id].to_i
   @contact = session[:contacts][@id]
   if valid?
-    first_name = params[:first_name].capitalize
-    last_name = params[:last_name].capitalize
+    first_name = params[:first_name]
+    last_name = params[:last_name]
     email = params[:email]
     phone = params[:phone].gsub(/[ -]/, " ")
     category = params[:category]
