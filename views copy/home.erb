@@ -1,0 +1,43 @@
+<% if session[:error] %>
+  <ul class="error">
+    <li ><%= session.delete(:error) %></li>  
+  </ul>
+<%end%>
+<form action="/contacts" method="post">
+  <div class="filtering">
+  <dl class="radio-button">
+    <input id="radio1" type="radio" name="category" value="friends" <%= checked_if_home("friends") %> >
+    <label id="radio1" for="radio1">Friends</label>
+  </dl><!--
+  --><dl class="radio-button"> 
+    <input id="radio2" type="radio" name="category" value="family" <%= checked_if_home("family") %> >
+    <label for="radio2">Family</label>
+  </dl><!--
+  --><dl class="radio-button"> 
+    <input id="radio3" type="radio" name="category" value="work" <%= checked_if_home("work") %> >
+    <label id="radio3" for="radio3">Work</label>
+  </dl>
+  </div>
+
+    <button class="submits" type="submit" required >Filter</button><!--
+ --><input hidden type="radio" name="category" value="" <%= checked_if_home("clear") %>><!--
+ --><button class="submits" type="submit" formaction="/contacts" method="post" name="category" value ="clear">Clear</button>
+  </dl>
+</form>
+
+<a href="/contacts/new"><button class="link-button">New Contact</button></a>
+
+<% if session[:category] %>
+  <h3 class="filter-name"><%= session[:category].capitalize %></h3>
+<% end %>
+<ul class="contact-names">
+  <%@contacts_list.each_with_index do |contact, index| %>
+    <li>
+      <a href="/contacts/<%= index %>">
+      <%= contact[:first_name] + " " + contact[:last_name] %>
+      </a>  
+    </li>
+    <% end %>
+  </ul>
+
+

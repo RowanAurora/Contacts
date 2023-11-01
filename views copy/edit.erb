@@ -1,0 +1,45 @@
+<a href="/contacts"><button class="link-button" >Home</button></a>
+<% if session[:error] %>
+  <% errors = session.delete(:error) %>
+    <ul class="error">
+      <% errors.each do |error| %>
+        <li ><%= error %></li>  
+      <% end %>
+    </ul>
+<%end%>
+
+<p>Edit Contact</p>
+<form action="/contacts/<%= @id %>/edit" method="post">
+  <dl>
+    <dt class="form" ><label name="first_name">First Name</label></dt><!--
+    --><dd class="form" ><input type="text" name="first_name" value="<%= params[:first_name] || @contact[:first_name] %>"></dd>
+  </dl>
+
+  <dl>
+    <dt class="form" ><label name="last_name">Last Name</label></dt><!--
+    --><dd class="form" ><input type="text" name="last_name" value="<%= params[:last_name] ||@contact[:last_name] %>"></dd>
+  </dl>
+
+  <dl>
+    <dt class="form" ><label name="email">Email</label></dt><!--
+    --><dd class="form" ><input type="email" name="email" value="<%= params[:email] ||@contact[:email] %>"></dd>
+  </dl>
+
+  <dl>
+    <dt class="form" ><label name="phone">Phone Number</label></dt><!--
+    --><dd class="form" ><input type="tel" name="phone" value="<%= params[:phone] ||@contact[:phone] %>"></dd>
+  </dl>
+
+  <dl id="form-radios" >
+      <dt class="form-radio" ><label for="category">Friends</label></dt>
+      <dd class="form-radio" ><input type="radio" name="category" value="friends" <%= checked_if_edit("friends") %> ></dd>
+    
+      <dt class="form-radio" ><label for="category">Family</label></dt>
+      <dd class="form-radio" ><input type="radio" name="category" value="family" <%= checked_if_edit("family") %> ></dd>
+    
+      <dt class="form-radio" ><label for="category">Work</label></dt>
+      <dd class="form-radio" ><input type="radio" name="category" value="work" <%= checked_if_edit("work") %> ></dd>
+    </dl>
+  <button class="submits-form" type=submit>Submit</button>
+</form>
+
