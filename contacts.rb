@@ -91,7 +91,13 @@ end
 
 get "/contacts" do
   # @id ||= 0
-  @contacts_list = session[:contacts]
+  if session[:category] && session[:category] != "clear"
+    @contacts_list = session[:contacts].select do |contact|
+      contact[:category] == session[:category]
+    end
+  else
+    @contacts_list = session[:contacts]
+  end
   
   erb :home, layout: :layout
 end
