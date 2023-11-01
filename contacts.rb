@@ -40,8 +40,17 @@ helpers do
   end
 end
 
+def gather_contact_info
+  [first_name = params[:first_name].strip,
+  last_name = params[:last_name].strip,
+  email = params[:email],
+  phone = params[:phone].gsub(/[ -]/, " "),
+  category = params[:category]]
+end
+
 def validate_name(name)
- (1..50).cover?(name.size) && name.scan(/[a-zA-Z]+/i) == [name]
+  name.strip!
+ (1..50).cover?(name.size) && name.scan(/[a-zA-Z ]+/i) == [name]
 end
 
 def validate_email(email)
@@ -110,11 +119,7 @@ get "/contacts/new" do
 post "/contacts/new" do
 
   if valid?
-    first_name = params[:first_name]
-    last_name = params[:last_name]
-    email = params[:email]
-    phone = params[:phone].gsub(/[ -]/, " ")
-    category = params[:category]
+    first_name, last_name, email, phone, category = gather_contact_info
 
     session[:contacts] << {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category }
     redirect "/contacts"
@@ -154,11 +159,7 @@ post "/contacts/:id/edit" do
   @id = params[:id].to_i
   @contact = session[:contacts][@id]
   if valid?
-    first_name = params[:first_name]
-    last_name = params[:last_name]
-    email = params[:email]
-    phone = params[:phone].gsub(/[ -]/, " ")
-    category = params[:category]
+    first_name, last_name, email, phone, category = gather_contact_info
 
     session[:contacts][@id] = {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category }
 
