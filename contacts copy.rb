@@ -4,7 +4,6 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/content_for'
 require 'tilt/erubis'
-require_relative 'session_persistence'
 
 configure do
   enable :sessions
@@ -14,7 +13,7 @@ configure do
 end
 
 before do
-  @storage = SessionPersistence.new(session)
+  session[:contacts] ||= []
 end
 
 not_found do
@@ -29,14 +28,14 @@ helpers do
   end
 
   def checked_if_home(value)
-    category = @storage.checked_category
+    category = session[:category]
 
     if category == "clear"
-      @storage.remove_checked_category
+      session.delete(:category)
     else
       category
     end
-
+   
     value == category ? "checked" : ""
   end
 end
@@ -49,13 +48,11 @@ def gather_contact_info
   category = params[:category]]
 end
 
-# Checks name is Alphabetic characters
 def validate_name(name)
   name.strip!
- (1..50).cover?(name.size) && name.scan(/[a-z ]+/i) == [name]
+ (1..50).cover?(name.size) && name.scan(/[a-zA-Z ]+/i) == [name]
 end
 
-# Checks if aplhanumeric characters, @, alpahetic, ., then alphabetic for 
 def validate_email(email)
   (1..70).cover?(email.size)&& email.scan(/[a-z0-9]+[@][a-z]+[.][a-z]+/i) == [email]
 end
@@ -83,8 +80,6 @@ def error_messages
   errors
 end
 
-
-
 get "/" do
  redirect "/contacts"
 end
@@ -96,12 +91,12 @@ end
 
 get "/contacts" do
   # @id ||= 0
-  if @storage.checked_category && @storage.checked_category != "clear"
-    @contacts_list = @storage.all_contacts.select do |contact|
-      contact[:category] == @storage.checked_category
+  if session[:category] && session[:category] != "clear"
+    @contacts_list = session[:contacts].select do |contact|
+      contact[:category] == session[:category]
     end
   else
-    @contacts_list = @storage.all_contacts
+    @contacts_list = session[:contacts]
   end
   
   erb :home, layout: :layout
@@ -109,14 +104,14 @@ end
 
 
 post "/contacts" do
-  @storage.update_checked_category(params[:category])
+  session[:category] = params[:category]
 
-  if @storage.checked_category && @storage.checked_category != "clear"
-    @contacts_list = @storage.all_contacts.select do |contact|
-      contact[:category] == @storage.checked_category
+  if session[:category] && session[:category] != "clear"
+    @contacts_list = session[:contacts].select do |contact|
+      contact[:category] == session[:category]
     end
   else
-    @contacts_list = @storage.all_contacts
+    @contacts_list = session[:contacts]
   end
 
   erb :home, layout: :layout
@@ -132,7 +127,7 @@ post "/contacts/new" do
   if valid?
     first_name, last_name, email, phone, category = gather_contact_info
 
-    @storage.add_contact({first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category })
+    session[:contacts] << {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category }
     redirect "/contacts"
   else
     session[:error] = error_messages()
@@ -141,7 +136,7 @@ post "/contacts/new" do
 end
 
 def load_contact(id)
-  contact = @storage.single_contact(id) if id && @storage.single_contact(id)
+  contact = session[:contacts][id] if id && session[:contacts][id]
   return contact if contact
 
   session[:error] = "The specified contact was not found."
@@ -161,18 +156,18 @@ end
 
 get "/contacts/:id/edit" do
   @id = params[:id].to_i
-  @contact = @storage.single_contact(@id)
+  @contact = session[:contacts][@id]
 
   erb :edit, layout: :layout
 end
 
 post "/contacts/:id/edit" do
   @id = params[:id].to_i
-  @contact = @storage.single_contact(@id)
+  @contact = session[:contacts][@id]
   if valid?
     first_name, last_name, email, phone, category = gather_contact_info
 
-    @storage.update_single_contact(@id, {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category })
+    session[:contacts][@id] = {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category }
 
     redirect "/contacts/#{@id}"
   else
@@ -184,6 +179,6 @@ post "/contacts/:id/edit" do
 end
 
 post "/contacts/:id/delete" do
-  @storage.delete_contact(params[:id].to_i)
+  session[:contacts].delete_at(params[:id].to_i)
   redirect "/contacts"
 end
