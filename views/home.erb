@@ -31,9 +31,9 @@
   <h3 class="filter-name"><%= session[:category].capitalize %></h3>
 <% end %>
 <ul class="contact-names">
-  <%@contacts_list.each_with_index do |contact, index| %>
+  <%@contacts_list.each do |contact| %>
     <li>
-      <a href="/contacts/<%= index %>">
+      <a href="/contacts/<%= contact[:id] %>">
       <%= contact[:first_name] + " " + contact[:last_name] %>
       </a>  
     </li>

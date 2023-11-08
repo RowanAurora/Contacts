@@ -4,7 +4,6 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'sinatra/content_for'
 require 'tilt/erubis'
-require_relative 'session_persistence'
 
 configure do
   enable :sessions
@@ -13,8 +12,16 @@ configure do
   set :session_secret, SecureRandom.hex(32)
 end
 
+configure(:development) do 
+  require_relative "database_persistence"
+  require_relative "session_persistence.rb" 
+  also_reload "database_persistence.rb" 
+  also_reload "session_persistence.rb" 
+end
+
 before do
-  @storage = SessionPersistence.new(session)
+  @storage = DatabasePersistence.new(logger) 
+  @session = SessionPersistence.new(session)
 end
 
 not_found do
@@ -22,25 +29,34 @@ not_found do
 end
 
 helpers do
+# checks which if any category is checked when editing a contact
   def checked_if_edit(value)
-    category = params[:category] || session[:contacts][@id][:category]
-
+    category = params[:category] || @storage.single_contact(@id)[:category]
     value == category ? "checked" : ""
   end
 
+# checks on the home page to see if a filter category is selected
   def checked_if_home(value)
-    category = @storage.checked_category
-
+    category = @session.checked_category
     if category == "clear"
-      @storage.remove_checked_category
+      @session.remove_checked_category
     else
       category
     end
-
     value == category ? "checked" : ""
   end
 end
 
+#loads contact info
+def load_contact(id)
+  contact = @storage.single_contact(id) if id && @storage.single_contact(id)
+  return contact if contact
+
+  session[:error] = "The specified contact was not found."
+  redirect "/contacts"
+end
+
+# retrieves info for a contact into an array
 def gather_contact_info
   [first_name = params[:first_name].strip,
   last_name = params[:last_name].strip,
@@ -60,10 +76,12 @@ def validate_email(email)
   (1..70).cover?(email.size)&& email.scan(/[a-z0-9]+[@][a-z]+[.][a-z]+/i) == [email]
 end
 
+# Validates Phone number structure
 def validate_phone(phone)
   phone.gsub(/[ -]/, "").scan(/[0-9]{10,11}/i) == [phone.gsub(/[ -]/, "")]
 end
 
+# Sequentially checks if all inputs are valid
 def valid?
   list = [
     validate_name(params[:first_name]),
@@ -74,6 +92,7 @@ def valid?
   list.all? {|item| item == true }
 end
 
+# Adds appropriate error messages to an array for later use
 def error_messages
   errors = []
   !validate_name(params[:first_name]) ? errors << "First Name Input Wrong, 1-50 Alphabetic Characters Please" : ""
@@ -83,22 +102,23 @@ def error_messages
   errors
 end
 
-
-
+#redirects to the home page
 get "/" do
  redirect "/contacts"
 end
 
+# ah ah ah
 get "/notfound" do
 
   erb :notfound, layout: :blank
 end
 
+# lists all the contacts on the home page, checks if filter is selected
 get "/contacts" do
   # @id ||= 0
-  if @storage.checked_category && @storage.checked_category != "clear"
+  if @session.checked_category && @session.checked_category != "clear"
     @contacts_list = @storage.all_contacts.select do |contact|
-      contact[:category] == @storage.checked_category
+      contact[:category] == @session.checked_category
     end
   else
     @contacts_list = @storage.all_contacts
@@ -107,13 +127,13 @@ get "/contacts" do
   erb :home, layout: :layout
 end
 
-
+# Path for contact filters to be submitted to
 post "/contacts" do
-  @storage.update_checked_category(params[:category])
+  @session.update_checked_category(params[:category])
 
-  if @storage.checked_category && @storage.checked_category != "clear"
+  if @session.checked_category && @session.checked_category != "clear"
     @contacts_list = @storage.all_contacts.select do |contact|
-      contact[:category] == @storage.checked_category
+      contact[:category] == @session.checked_category
     end
   else
     @contacts_list = @storage.all_contacts
@@ -122,17 +142,18 @@ post "/contacts" do
   erb :home, layout: :layout
 end
 
+# Displays page for making new contact
 get "/contacts/new" do
   
   erb :new, layout: :layout
- end
+end
 
+# Creates new contact
 post "/contacts/new" do
-
   if valid?
     first_name, last_name, email, phone, category = gather_contact_info
 
-    @storage.add_contact({first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category })
+    @storage.add_contact({first_name: first_name, last_name: last_name, email: email, phone: phone, category: category})
     redirect "/contacts"
   else
     session[:error] = error_messages()
@@ -140,25 +161,20 @@ post "/contacts/new" do
   end
 end
 
-def load_contact(id)
-  contact = @storage.single_contact(id) if id && @storage.single_contact(id)
-  return contact if contact
-
-  session[:error] = "The specified contact was not found."
-  redirect "/contacts"
-end
-
+# displays page for one contact
 get "/contacts/:id" do
   @id = params[:id].to_i
   contact_hash = load_contact(@id)
-  name = contact_hash[:first_name] + " " + contact_hash[:last_name]
+  name = "#{contact_hash[:first_name]} #{contact_hash[:last_name]}"
   email = contact_hash[:email]
   phone = contact_hash[:phone].gsub(/[ -]/, " ")
+  category = contact_hash[:category]
 
-  @contact = {"Name" => name, "Email" => email, "Phone" => phone }
+  @contact = {"Name" => name, "Email" => email, "Phone" => phone, "Category" => category.capitalize }
   erb :contact, layout: :layout
 end
 
+# displays page to edit one contacts
 get "/contacts/:id/edit" do
   @id = params[:id].to_i
   @contact = @storage.single_contact(@id)
@@ -166,13 +182,14 @@ get "/contacts/:id/edit" do
   erb :edit, layout: :layout
 end
 
+# edits the single contact
 post "/contacts/:id/edit" do
   @id = params[:id].to_i
   @contact = @storage.single_contact(@id)
   if valid?
     first_name, last_name, email, phone, category = gather_contact_info
-
-    @storage.update_single_contact(@id, {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category })
+    temp_hash_contact = {first_name: first_name, last_name:  last_name, email: email, phone: phone, category: category }
+    @storage.update_single_contact(@id, temp_hash_contact)
 
     redirect "/contacts/#{@id}"
   else
@@ -183,6 +200,7 @@ post "/contacts/:id/edit" do
 
 end
 
+# Deletes a contact
 post "/contacts/:id/delete" do
   @storage.delete_contact(params[:id].to_i)
   redirect "/contacts"

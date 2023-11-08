@@ -1,7 +1,7 @@
 <a href="/contacts"><button class="link-button" >Home</button></a>
 <ul class="contact-info">
   <% @contact.each do |title, detail| %>
-    <li class="contact-info"><%= title + ": " + detail.capitalize %></li>
+    <li class="contact-info"><%= title + ": " + detail %></li>
   <% end %>
 </ul>
 
